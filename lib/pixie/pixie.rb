@@ -3,6 +3,8 @@ require_relative 'native'
 
 module Pixie
   class Pixie
+    attr_reader :count, :type
+
     # Construct a new Pixie context.
     # @example
     #   pixels = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, 50)
@@ -80,7 +82,7 @@ module Pixie
 
     private
 
-    attr_reader :config, :count, :type
+    attr_reader :config
 
     def initialize_config(opts)
       Native::Ws2811.new.tap do |c|
@@ -127,7 +129,7 @@ module Pixie
     end
 
     def check_bounds(index)
-      raise ArgumentError, 'Index out of bounds' if index < 0 || index >= count
+      raise ArgumentError, "Index #{index} out of bounds" if index < 0 || index >= count
     end
 
     def uint_from_color(color)
@@ -140,10 +142,12 @@ module Pixie
     end
 
     def uint_to_color(uint)
-      Kodachroma::ColorModes::Rgb.new(
-        (uint >> 16) & 0xFF,
-        (uint >> 8) & 0xFF,
-        (uint >> 0) & 0xFF
+      Kodachroma::Color.new(
+        Kodachroma::ColorModes::Rgb.new(
+          (uint >> 16) & 0xFF,
+          (uint >> 8) & 0xFF,
+          (uint >> 0) & 0xFF
+        )
       )
     end
 

@@ -1,0 +1,22 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require "bundler/setup"
+require "pixie"
+
+
+p = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, 50)
+driver = Pixie::Effects::Driver.new(p)
+
+driver
+  .append(Pixie::Effects::Pulse, hue: 100, sat: 75, min: 0, max: 50, step: 2)
+  .append(Pixie::Effects::Wave, hue: 0, sat: 75, max: 60)
+  .append(Pixie::Effects::Wave, hue: 0, sat: 75, max: 60, start: 20)
+  .append(Pixie::Effects::Wave, hue: 0, sat: 75, max: 60, start: 36)
+
+begin
+  driver.run(5_00)
+rescue Interrupt
+ensure
+  p.clear
+end
