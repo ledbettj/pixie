@@ -23,6 +23,7 @@ pixels = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, 50)
 colors = ['red', 'green', 'blue']
 loop do
   pixels[0..49] = colors
+  pixels.render
   colors = colors.rotate
   sleep(0.075)
 end
