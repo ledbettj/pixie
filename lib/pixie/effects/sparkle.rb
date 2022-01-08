@@ -1,34 +1,31 @@
 module Pixie
   module Effects
-    class Sparkle
-      def initialize(driver, count: 4)
-        @driver = driver
+    class Sparkle < Base
+      def initialize(interval: 0.075, count: 4)
+        super
+
         @count = count
       end
 
-      def tick(n)
-        return if n.odd?
-
-        count.times do
-          index = Random.rand(0..(driver.count - 1))
-          color = driver[index]
-          driver[index] = color.lighten(15).desaturate(15)
+      def render(pixels)
+        indexes.each do |index|
+          color = pixels[index]
+          pixels[index] = color.lighten(35).desaturate(15)
         end
+      end
+
+      def update(pixels)
+        @indexes = update_indexes(pixels)
       end
 
       private
 
-      def initialize_colors
-        [
-          Kodachroma::Color.new(Kodachroma::ColorModes::Hsl.new(270, 100, 6)),
-          Kodachroma::Color.new(Kodachroma::ColorModes::Hsl.new(270, 100, 12)),
-          Kodachroma::Color.new(Kodachroma::ColorModes::Hsl.new(270, 100, 25)),
-          Kodachroma::Color.new(Kodachroma::ColorModes::Hsl.new(270, 100, 50)),
-        ]
+      def update_indexes(pixels)
+        count.times.map { Random.rand(0..(pixels.count - 1)) }
       end
 
+      attr_reader :indexes
       attr_accessor :count
-      attr_reader :driver
     end
   end
 end
