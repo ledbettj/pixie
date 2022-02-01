@@ -3,21 +3,22 @@
 
 require "bundler/setup"
 require "pixie"
-
+require "pixie/web"
+require "puma"
 
 p = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, 50)
-driver = Pixie::Effects::Driver.new(p)
 
-driver
-  .append(Pixie::Effects::Pulse, color: 'hsl(100, 100%, 50%)', lum_step: 0.02)
+driver = Pixie::Effects::Driver.new(p)
+  .append(Pixie::Effects::Pulse, color: 'hsl(100, 100%, 50%)')
   .append(Pixie::Effects::Wave, color: 'hsl(0, 100%, 60%)', start: 4)
   .append(Pixie::Effects::Wave, color: 'hsl(0, 100%, 60%)', start: 20)
   .append(Pixie::Effects::Wave, color: 'hsl(0, 100%, 60%)', start: 36)
-  .append(Pixie::Effects::Sparkle, color: nil, interval: 0.25, count: 8)
 
-begin
-  driver.run(Time.now + 30)
-rescue Interrupt
+t = Thread.new do
+  loop { driver.run(Time.now + 30) }
 ensure
   p.clear
 end
+
+Pixie::Web.set :driver, driver
+Pixie::Web.run!

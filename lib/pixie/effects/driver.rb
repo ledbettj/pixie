@@ -13,6 +13,14 @@ module Pixie
         self
       end
 
+      def as_json
+        { effects: stack.map(&:as_json) }
+      end
+
+      def remove(index)
+        stack.delete_at(index)
+      end
+
       def run(end_time)
         while (t = Time.now) < end_time
           stack
@@ -22,7 +30,7 @@ module Pixie
           stack.each { |effect| effect.render(pixels) }
           pixels.render
 
-          to_sleep = stack.map { |effect| effect.sleep_after(t) }.min
+          to_sleep = stack.map { |effect| effect.sleep_after(t) }&.min || 1.0
 
           sleep(to_sleep)
         end

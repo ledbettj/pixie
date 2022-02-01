@@ -1,28 +1,39 @@
 module Pixie
   module Effects
     class Pulse < Base
-      def initialize(hue: 20, sat: 100, min: 0, max: 50, step: 2)
+      def initialize(color:, lum_min: 0, lum_max: 0.50, lum_step: 0.02)
         super
 
-        @color = [hue, sat, min]
-        @step = step
-        @min = min
-        @max = max
+        reconfigure(color:, lum_min:, lum_max:, lum_step:)
+      end
+
+      def reconfigure(color:, lum_min:, lum_max:, lum_step:, **kwargs)
+        @color = Kodachroma.paint(color)
+        @hsl      = @color.hsl
+        @lum_min  = lum_min
+        @lum_max  = lum_max
+        self.lum_step = lum_step
+
+        hsl.l = hsl.l.clamp(@lum_min, @lum_max)
+        self.lum_step *= -1 if hsl.l >= @lum_max
+        @current_color = Kodachroma::Color.new(hsl)
+        super
       end
 
       def render(pixels)
-        pixels[0..(pixels.count - 1)] = format('hsl(%d, %d%%, %d%%)', *color)
+        pixels[0..(pixels.count - 1)] = @current_color
       end
 
       def update(pixels)
-        color[2] += step
-        self.step *= -1 if color[2] >= max || color[2] <= min
+        hsl.l += lum_step
+        @current_color = Kodachroma::Color.new(hsl)
+        self.lum_step *= -1 if hsl.l >= lum_max || hsl.l <= lum_min
       end
 
       private
 
-      attr_accessor :color, :step
-      attr_reader :min, :max
+      attr_reader :lum_min, :lum_max, :hsl
+      attr_accessor :lum_step
     end
   end
 end
