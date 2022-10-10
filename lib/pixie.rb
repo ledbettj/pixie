@@ -35,3 +35,4 @@ end
 require_relative 'pixie/version'
 require_relative 'pixie/pixie'
 require_relative 'pixie/effects'
+require_relative 'pixie/drb'

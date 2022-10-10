@@ -1,5 +1,11 @@
 require 'kodachroma'
-require_relative 'native'
+
+begin
+  require_relative 'native'
+rescue LoadError => e
+  puts "Warning: failed to load native extensions: #{e}"
+  puts "Only Drb Client mode will be available"
+end
 
 module Pixie
   class Pixie
