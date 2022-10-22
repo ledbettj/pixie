@@ -1,9 +1,32 @@
 #!/usr/bin/env ruby
-require "bundler/setup"
-require "pixie"
+require 'bundler/setup'
+require 'pixie'
 require 'fftw3'
+require 'optparse'
 
 $stdin.binmode
+
+this = File.basename(__FILE__)
+options = { }
+
+o = OptionParser.new do |opts|
+  opts.banner = "Usage: #{this} [options]"
+
+  opts.on('-h', '--host=HOST', 'druby URI of the server to connect to.') do |h|
+    options[:host] = h
+  end
+end
+
+o.parse!
+
+unless options[:host]
+  puts o.help
+  exit(1)
+end
+
+puts "Launching #{this} with #{options}"
+
+p = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, options[:count])
 
 client = Pixie::Drb::Client.new('druby://192.168.1.72:8787')
 pixie  = client.pixie

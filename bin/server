@@ -1,9 +1,27 @@
 #!/usr/bin/env ruby
-require "bundler/setup"
-require "pixie"
+require 'bundler/setup'
+require 'pixie'
+require 'optparse'
 
-p = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, 150)
-s = Pixie::Drb::Server.new('druby://0.0.0.0:8787', p)
+this = File.basename(__FILE__)
+options = { count: 50, host: '0.0.0.0:8787' }
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{this} [options]"
+
+  opts.on('-n', '-c', '--count=COUNT', Integer, 'Number of lights in your strip') do |n|
+    options[:count] = n unless n <= 0
+  end
+  opts.on('-h', '--host=HOST', 'address and port to listen for connections on') do |h|
+    options[:host] = h
+  end
+
+end.parse!
+
+puts "Launching #{this} with #{options}"
+
+p = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, options[:count])
+s = Pixie::Drb::Server.new("druby://#{host}", p)
 
 begin
   s.start
