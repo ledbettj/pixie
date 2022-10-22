@@ -30,4 +30,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'ffi', '~> 1.15'
   spec.add_dependency 'kodachroma', '~> 1.0'
+  spec.add_dependency 'drb', '~> 2.1'
+  spec.add_dependency 'fftw3'
 end

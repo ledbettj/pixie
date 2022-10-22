@@ -1,0 +1,97 @@
+#!/usr/bin/env ruby
+require "bundler/setup"
+require "pixie"
+require 'fftw3'
+
+$stdin.binmode
+
+client = Pixie::Drb::Client.new('druby://192.168.1.72:8787')
+pixie  = client.pixie
+
+MS = 50 # we want ~ms worth of audio
+READ_BUF_SIZE = 44_100 * MS / 1000
+PROCESS_BUF_SIZE = READ_BUF_SIZE  * 2
+BUCKETS = PROCESS_BUF_SIZE / 2
+FREQ_PER_BUCKET = 44_100 / BUCKETS
+SUPERBASS = [20, 60]
+BASS = [60, 200]
+MID  = [500, 2_000]
+HI   = [2_000, 4_000]
+
+def hz_to_index(hz)
+  (hz.to_f/FREQ_PER_BUCKET - 1).round
+end
+
+SUPERBASS_INDEX = Range.new(*SUPERBASS.map{ |hz| hz_to_index(hz) })
+BASS_INDEX = Range.new(*BASS.map{ |hz| hz_to_index(hz) })
+MID_INDEX  = Range.new(*MID.map{ |hz| hz_to_index(hz) })
+HI_INDEX   = Range.new(*HI.map{ |hz| hz_to_index(hz) })
+
+def bass_color(index, pct, t)
+  colors = t > 0 ? [270, 270, 17] : [17, 17, 270]
+  hue = colors[index % 3]
+  "hsl(#{hue}, 80, #{pct}%)"
+end
+
+def hi_color(index, pct, t)
+  hue = 303
+  "hsl(#{hue}, 80, #{pct}%)"
+end
+
+
+freqs   = %i[bass mid hi].freeze
+ranges  = { bass: BASS_INDEX, mid: MID_INDEX, hi: HI_INDEX }
+last    = { bass: 0.0, mid: 0.0, hi: 0.0 }
+measure = { bass: 0.0, mid: 0.0, hi: 0.0 }
+threshold = { bass: 95.0, mid: 65, hi: 50.0 }
+t       = -20
+samples = []
+
+loop do
+  read_buffer = ''
+  while read_buffer.length < READ_BUF_SIZE
+    read_buffer += $stdin.read(READ_BUF_SIZE - read_buffer.length)
+  end
+  samples.concat(read_buffer.bytes.map{|r| (r - 0x80) / 0x80.to_f })
+
+  next if samples.length < PROCESS_BUF_SIZE
+
+  fft = FFTW3
+          .fft(NArray.to_na(samples))
+          .to_a[0, BUCKETS]
+          .map{ |r| r.magnitude * 2 }
+
+  current = { bass: 0.0, mid: 0.0, hi: 0.0 }
+  freqs.each do |freq|
+    range = ranges[freq]
+    measure[freq] = fft[range].sum / range.count
+    current[freq] = measure[freq] >= threshold[freq] ? 1.0 : last[freq] / 2.0
+  end
+  
+
+  # base colors are bass
+  pct = 5 + (current[:bass] * 50).floor
+  colors = (0..149).map { |index| bass_color(index, pct, t) }
+
+  if current[:hi] >= 1.0
+    (0..149).step(6).each do |index|
+      colors[index] = 0xffffff
+    end
+  end
+
+  if current[:mid] >= 1.0
+    (3..149).step(6).each do |index|
+      colors[index] = 0xffffff
+    end
+  end
+
+
+  pixie[0..149] = colors
+  pixie.render
+  samples = samples[READ_BUF_SIZE..-1]
+
+  last = current
+
+  t += 1
+  t = -20 if t > 20
+end
