@@ -1,10 +1,17 @@
 module Pixie
   module Effects
     class Wave < Base
-      def initialize(interval: 0.075, hue: 270, sat: 100, max: 50, start: 3)
+      def initialize(color:, interval: 0.075, start: 3)
         super
-        @colors = initialize_colors(hue, sat, max)
+
+        reconfigure(color:, interval:, start:)
+        @colors = initialize_colors(Kodachroma.paint(color))
         @offset = start
+      end
+
+      def reconfigure(color:, **kwargs)
+        @colors = initialize_colors(Kodachroma.paint(color))
+        super
       end
 
       def render(pixels)
@@ -20,13 +27,8 @@ module Pixie
 
       private
 
-      def initialize_colors(hue, sat, max)
-        [
-          Kodachroma::Color.new(Kodachroma::ColorModes::Hsl.new(hue, sat, max / 8)),
-          Kodachroma::Color.new(Kodachroma::ColorModes::Hsl.new(hue, sat, max / 4)),
-          Kodachroma::Color.new(Kodachroma::ColorModes::Hsl.new(hue, sat, max / 2)),
-          Kodachroma::Color.new(Kodachroma::ColorModes::Hsl.new(hue, sat, max)),
-        ]
+      def initialize_colors(color)
+        4.times.map { |i| color.darken(i * 20)  }.reverse
       end
 
       attr_accessor :colors, :offset

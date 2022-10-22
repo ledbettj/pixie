@@ -1,7 +1,7 @@
 module Pixie
   module Effects
     class Sparkle < Base
-      def initialize(interval: 0.075, count: 4)
+      def initialize(color:, interval: 0.075, count: 4)
         super
 
         @count = count
