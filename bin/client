@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 require 'bundler/setup'
 require 'pixie'
-require 'fftw3'
+require 'numo/pocketfft'
 require 'optparse'
 
 $stdin.binmode
@@ -25,8 +25,6 @@ unless options[:host]
 end
 
 puts "Launching #{this} with #{options}"
-
-p = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, options[:count])
 
 client = Pixie::Drb::Client.new('druby://192.168.1.72:8787')
 pixie  = client.pixie
@@ -79,8 +77,8 @@ loop do
 
   next if samples.length < PROCESS_BUF_SIZE
 
-  fft = FFTW3
-          .fft(NArray.to_na(samples))
+  fft = Numo::Pocketfft
+          .fft(Numo::NArray.asarray(samples))
           .to_a[0, BUCKETS]
           .map{ |r| r.magnitude * 2 }
 
@@ -90,7 +88,6 @@ loop do
     measure[freq] = fft[range].sum / range.count
     current[freq] = measure[freq] >= threshold[freq] ? 1.0 : last[freq] / 2.0
   end
-  
 
   # base colors are bass
   pct = 5 + (current[:bass] * 50).floor
