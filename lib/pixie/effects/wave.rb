@@ -4,7 +4,7 @@ module Pixie
       def initialize(color:, interval: 0.075, start: 3)
         super
 
-        reconfigure(color:, interval:, start:)
+        reconfigure(color: color, interval: interval, start: start)
         @colors = initialize_colors(Kodachroma.paint(color))
         @offset = start
       end
