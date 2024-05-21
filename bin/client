@@ -12,6 +12,10 @@ options = { }
 o = OptionParser.new do |opts|
   opts.banner = "Usage: #{this} [options]"
 
+  opts.on('-c', '-n', '--count=COUNT', 'number of lights in strand') do |c|
+    options[:count] = c
+  end
+
   opts.on('-h', '--host=HOST', 'druby URI of the server to connect to.') do |h|
     options[:host] = h
   end
@@ -26,7 +30,9 @@ end
 
 puts "Launching #{this} with #{options}"
 
-client = Pixie::Drb::Client.new('druby://192.168.1.72:8787')
+lights = options[:count].to_i - 1
+
+client = Pixie::Drb::Client.new("druby://#{options[:host]}:8787")
 pixie  = client.pixie
 
 MS = 50 # we want ~ms worth of audio
@@ -91,22 +97,22 @@ loop do
 
   # base colors are bass
   pct = 5 + (current[:bass] * 50).floor
-  colors = (0..149).map { |index| bass_color(index, pct, t) }
+  colors = (0..lights).map { |index| bass_color(index, pct, t) }
 
   if current[:hi] >= 1.0
-    (0..149).step(6).each do |index|
+    (0..lights).step(6).each do |index|
       colors[index] = 0xffffff
     end
   end
 
   if current[:mid] >= 1.0
-    (3..149).step(6).each do |index|
+    (3..lights).step(6).each do |index|
       colors[index] = 0xffffff
     end
   end
 
 
-  pixie[0..149] = colors
+  pixie[0..lights] = colors
   pixie.render
   samples = samples[READ_BUF_SIZE..-1]
 
