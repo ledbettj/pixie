@@ -7,7 +7,7 @@ module Pixie
         reconfigure(color: color,
                     lum_min: lum_min,
                     lum_max: lum_max,
-                    lum_step: kum_step)
+                    lum_step: lum_step)
       end
 
       def reconfigure(color:, lum_min:, lum_max:, lum_step:, **kwargs)
