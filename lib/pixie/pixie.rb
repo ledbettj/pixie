@@ -1,10 +1,11 @@
-require 'kodachroma'
+require "kodachroma"
 
 begin
-  require_relative 'native'
+  require_relative "native"
 rescue LoadError => e
   puts "Warning: failed to load native extensions: #{e}"
-  puts "Only Drb Client mode will be available"
+  puts "Only Drb Client mode + emulator will be available"
+  require_relative "native_emulator"
 end
 
 module Pixie
@@ -65,7 +66,7 @@ module Pixie
       if index.is_a?(Range)
         read_leds_at(index)
       else
-       uint_to_color(led_at(index).read_uint32)
+        uint_to_color(led_at(index).read_uint32)
       end
     end
 
@@ -80,7 +81,7 @@ module Pixie
       ptr = config[:channel][0][:leds]
       count.times do
         ptr.write_uint32(0)
-        ptr = ptr + 4
+        ptr += 4
       end
 
       render
@@ -126,8 +127,6 @@ module Pixie
       check_bounds(range.first)
       check_bounds(range.last)
       values = Array(value).map { |v| uint_from_color(v) }
-
-      n = 0
       range.each_with_index do |index, i|
         ptr = config[:channel][0][:leds] + (4 * index)
         ptr.write_uint32(values[i % values.length])
