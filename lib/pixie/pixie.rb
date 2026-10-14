@@ -3,9 +3,13 @@ require "kodachroma"
 begin
   require_relative "native"
 rescue LoadError => e
-  puts "Warning: failed to load native extensions: #{e}"
-  puts "Only Drb Client mode + emulator will be available"
-  require_relative "native_emulator"
+  if File.exist?(ENV.fetch("PIXIE_DEVICE", "/dev/leds0"))
+    require_relative "native_pio"
+  else
+    puts "Warning: failed to load native extensions: #{e}"
+    puts "Only Drb Client mode + emulator will be available"
+    require_relative "native_emulator"
+  end
 end
 
 module Pixie
