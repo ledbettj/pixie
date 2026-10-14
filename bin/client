@@ -39,14 +39,14 @@ MS = 50 # we want ~ms worth of audio
 READ_BUF_SIZE = 44_100 * MS / 1000
 PROCESS_BUF_SIZE = READ_BUF_SIZE  * 2
 BUCKETS = PROCESS_BUF_SIZE / 2
-FREQ_PER_BUCKET = 44_100 / BUCKETS
+FREQ_PER_BUCKET = 44_100.0 / PROCESS_BUF_SIZE
 SUPERBASS = [20, 60]
 BASS = [60, 200]
 MID  = [500, 2_000]
 HI   = [2_000, 4_000]
 
 def hz_to_index(hz)
-  (hz.to_f/FREQ_PER_BUCKET - 1).round
+  (hz / FREQ_PER_BUCKET).round
 end
 
 SUPERBASS_INDEX = Range.new(*SUPERBASS.map{ |hz| hz_to_index(hz) })
@@ -70,7 +70,7 @@ freqs   = %i[bass mid hi].freeze
 ranges  = { bass: BASS_INDEX, mid: MID_INDEX, hi: HI_INDEX }
 last    = { bass: 0.0, mid: 0.0, hi: 0.0 }
 measure = { bass: 0.0, mid: 0.0, hi: 0.0 }
-threshold = { bass: 95.0, mid: 65, hi: 50.0 }
+threshold = { bass: 120.0, mid: 35.0, hi: 25.0 }
 t       = -20
 samples = []
 
