@@ -32,5 +32,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'kodachroma', '~> 1.0'
   spec.add_dependency 'drb', '~> 2.1'
   spec.add_dependency 'numo-pocketfft', '~> 0.4'
+  spec.add_dependency 'paint', '~> 2.3'
+  spec.add_dependency 'puma', '~> 5.5'
   spec.add_dependency 'sinatra', '~> 2.1'
 end
