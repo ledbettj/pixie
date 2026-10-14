@@ -13,14 +13,6 @@ module Pixie
         self
       end
 
-      def as_json
-        { effects: stack.map(&:as_json) }
-      end
-
-      def remove(index)
-        stack.delete_at(index)
-      end
-
       def run(end_time)
         while (t = Time.now) < end_time
           stack

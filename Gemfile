@@ -11,6 +11,4 @@ gem "rspec", "~> 3.0"
 
 gem "rubocop", "~> 1.21"
 
-gem "sinatra-contrib"
-
 gem "fiddle", "~> 1.1"

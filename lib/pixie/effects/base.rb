@@ -13,14 +13,6 @@ module Pixie
         @config = kwargs
       end
 
-      def name
-        self.class.name.to_s.split('::').last
-      end
-
-      def as_json
-        { name: name, config: config }
-      end
-
       def update?(now)
         diff = now - last_update
         diff >= interval
