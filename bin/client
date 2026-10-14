@@ -40,39 +40,39 @@ READ_BUF_SIZE = 44_100 * MS / 1000
 PROCESS_BUF_SIZE = READ_BUF_SIZE  * 2
 BUCKETS = PROCESS_BUF_SIZE / 2
 FREQ_PER_BUCKET = 44_100.0 / PROCESS_BUF_SIZE
-SUPERBASS = [20, 60]
-BASS = [60, 200]
-MID  = [500, 2_000]
-HI   = [2_000, 4_000]
+BASS  = [60, 200]
+SNARE = [150, 400]
+HI    = [2_000, 4_000]
+
+# A band "hits" when its energy jumps well above its own average over the
+# last second, so hits follow the beat rather than the overall volume.
+HISTORY    = 20 # frames (~1s)
+REFRACTORY = 4  # minimum frames between hits (~200ms)
+DECAY      = 0.7
+RATIO      = { bass: 1.5, snare: 1.8, hi: 1.8 }.freeze
 
 def hz_to_index(hz)
   (hz / FREQ_PER_BUCKET).round
 end
 
-SUPERBASS_INDEX = Range.new(*SUPERBASS.map{ |hz| hz_to_index(hz) })
-BASS_INDEX = Range.new(*BASS.map{ |hz| hz_to_index(hz) })
-MID_INDEX  = Range.new(*MID.map{ |hz| hz_to_index(hz) })
-HI_INDEX   = Range.new(*HI.map{ |hz| hz_to_index(hz) })
+BASS_INDEX  = Range.new(*BASS.map{ |hz| hz_to_index(hz) })
+SNARE_INDEX = Range.new(*SNARE.map{ |hz| hz_to_index(hz) })
+HI_INDEX    = Range.new(*HI.map{ |hz| hz_to_index(hz) })
 
-def bass_color(index, pct, t)
-  colors = t > 0 ? [270, 270, 17] : [17, 17, 270]
+def bass_color(index, pct, flip)
+  colors = flip ? [270, 270, 17] : [17, 17, 270]
   hue = colors[index % 3]
   "hsl(#{hue}, 80, #{pct}%)"
 end
 
-def hi_color(index, pct, t)
-  hue = 303
-  "hsl(#{hue}, 80, #{pct}%)"
-end
-
-
-freqs   = %i[bass mid hi].freeze
-ranges  = { bass: BASS_INDEX, mid: MID_INDEX, hi: HI_INDEX }
-last    = { bass: 0.0, mid: 0.0, hi: 0.0 }
-measure = { bass: 0.0, mid: 0.0, hi: 0.0 }
-threshold = { bass: 120.0, mid: 35.0, hi: 25.0 }
-t       = -20
-samples = []
+freqs    = %i[bass snare hi].freeze
+ranges   = { bass: BASS_INDEX, snare: SNARE_INDEX, hi: HI_INDEX }
+last     = { bass: 0.0, snare: 0.0, hi: 0.0 }
+history  = { bass: [], snare: [], hi: [] }
+last_hit = { bass: -REFRACTORY, snare: -REFRACTORY, hi: -REFRACTORY }
+frame    = 0
+flip     = false
+samples  = []
 
 loop do
   read_buffer = ''
@@ -90,36 +90,43 @@ loop do
           .to_a[0, BUCKETS]
           .map{ |r| r.magnitude * 2 }
 
-  current = { bass: 0.0, mid: 0.0, hi: 0.0 }
+  current = {}
   freqs.each do |freq|
-    range = ranges[freq]
-    measure[freq] = fft[range].sum / range.count
-    current[freq] = measure[freq] >= threshold[freq] ? 1.0 : last[freq] / 2.0
+    range  = ranges[freq]
+    energy = fft[range].sum / range.count
+    past   = history[freq]
+    hit    = past.size == HISTORY &&
+             energy > past.sum / HISTORY * RATIO[freq] &&
+             energy > past.last &&
+             frame - last_hit[freq] >= REFRACTORY
+
+    last_hit[freq] = frame if hit
+    current[freq]  = hit ? 1.0 : last[freq] * DECAY
+    past.push(energy)
+    past.shift if past.size > HISTORY
   end
 
-  # base colors are bass
+  # base colors pulse with the bass, swapping purple/orange on every beat
+  flip = !flip if last_hit[:bass] == frame
   pct = 5 + (current[:bass] * 50).floor
-  colors = (0..lights).map { |index| bass_color(index, pct, t) }
+  colors = (0..lights).map { |index| bass_color(index, pct, flip) }
 
-  if current[:hi] >= 1.0
+  if current[:hi] >= 0.3
     (0..lights).step(6).each do |index|
       colors[index] = 0xffffff
     end
   end
 
-  if current[:mid] >= 1.0
+  if current[:snare] >= 0.3
     (3..lights).step(6).each do |index|
       colors[index] = 0xffffff
     end
   end
-
 
   pixie[0..lights] = colors
   pixie.render
   samples = samples[READ_BUF_SIZE..-1]
 
   last = current
-
-  t += 1
-  t = -20 if t > 20
+  frame += 1
 end
