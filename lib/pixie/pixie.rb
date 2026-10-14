@@ -114,23 +114,31 @@ module Pixie
     end
 
     def read_leds_at(range)
-      check_bounds(range.first)
-      check_bounds(range.last)
-
-      range.map do |index|
+      resolve_range(range).map do |index|
         ptr = config[:channel][0][:leds] + (4 * index)
         uint_to_color(ptr.read_uint32)
       end
     end
 
     def write_leds_at(range, value)
-      check_bounds(range.first)
-      check_bounds(range.last)
       values = Array(value).map { |v| uint_from_color(v) }
-      range.each_with_index do |index, i|
+      resolve_range(range).each_with_index do |index, i|
         ptr = config[:channel][0][:leds] + (4 * index)
         ptr.write_uint32(values[i % values.length])
       end
+    end
+
+    # Convert an exclusive, beginless or endless range into an inclusive one
+    # bounded by the strand, raising if either end is out of bounds.
+    def resolve_range(range)
+      first = range.begin || 0
+      last  = range.end || count - 1
+      last -= 1 if range.end && range.exclude_end?
+      return (first...first) if last < first
+
+      check_bounds(first)
+      check_bounds(last)
+      first..last
     end
 
     def check_bounds(index)
