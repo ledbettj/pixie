@@ -1,0 +1,56 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Pipe whatever is playing on this machine into bin/client, so the lights on
+# the pixie server react to the music.
+
+require 'optparse'
+
+this = File.basename(__FILE__)
+options = { count: 50, source: '@DEFAULT_MONITOR@' }
+
+o = OptionParser.new do |opts|
+  opts.banner = "Usage: #{this} [options]"
+
+  opts.on('-n', '-c', '--count=COUNT', Integer, 'Number of lights in your strip') do |n|
+    options[:count] = n unless n <= 0
+  end
+
+  opts.on('-h', '--host=HOST', 'Address of the pixie server') do |h|
+    options[:host] = h
+  end
+
+  opts.on('-s', '--source=SOURCE', 'PulseAudio source to capture (default: monitor of the default sink)') do |s|
+    options[:source] = s
+  end
+end
+
+o.parse!
+
+unless options[:host]
+  puts o.help
+  exit(1)
+end
+
+puts "Launching #{this} with #{options}"
+
+client = File.expand_path('client', __dir__)
+reader, writer = IO.pipe
+
+parec = spawn('parec', '-d', options[:source], '--format=u8', '--channels=1', '--rate=44100', '--latency-msec=20', out: writer)
+lights = spawn(client, '-h', options[:host], '-c', options[:count].to_s, in: reader)
+writer.close
+reader.close
+
+%w[INT TERM].each do |sig|
+  trap(sig) { Process.kill(sig, lights) rescue Errno::ESRCH }
+end
+
+begin
+  _, status = Process.wait2(lights)
+ensure
+  Process.kill('TERM', parec) rescue Errno::ESRCH
+  Process.wait(parec)
+end
+
+exit(status&.success? || false)
