@@ -16,13 +16,35 @@ module Pixie
       "Oops: #{rc}"
     end
 
+    # Draw the strip on a single terminal line, two LEDs per character (the
+    # left half of "▌" is the foreground color, the right half the background).
+    # If the strip is still wider than the terminal, each half shows the
+    # brightest channels of the LEDs it covers so single-LED sparks stay visible.
     def self.ws2811_render(config)
-      s = config[:channel][0].leds.map do |v|
-        Paint["#", "##{v.to_s(16).rjust(6, "0")}"]
+      leds  = config[:channel][0].leds
+      slots = [leds.size, (terminal_columns - 1) * 2].min
+      halves = slots.times.map do |i|
+        group = leds[(i * leds.size / slots)...((i + 1) * leds.size / slots)]
+        [16, 8, 0].sum { |shift| group.map { |v| (v >> shift) & 0xff }.max << shift }
+      end
+
+      s = halves.each_slice(2).map do |left, right|
+        Paint["▌", hex(left), hex(right || 0)]
       end.join("")
       print "\r#{s}"
       sleep(0.01)
       :success
+    end
+
+    def self.hex(v)
+      "##{v.to_s(16).rjust(6, "0")}"
+    end
+
+    def self.terminal_columns
+      require "io/console"
+      IO.console&.winsize&.last || 80
+    rescue StandardError
+      80
     end
 
     class FakePointer
