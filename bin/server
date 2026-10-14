@@ -21,7 +21,7 @@ end.parse!
 puts "Launching #{this} with #{options}"
 
 p = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, options[:count])
-s = Pixie::Drb::Server.new("druby://#{host}", p)
+s = Pixie::Drb::Server.new("druby://#{options[:host]}", p)
 
 begin
   s.start
