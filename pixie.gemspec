@@ -33,4 +33,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'drb', '~> 2.1'
   spec.add_dependency 'numo-pocketfft', '~> 0.4'
   spec.add_dependency 'paint', '~> 2.3'
+  spec.add_dependency 'bindata', '~> 3.0'
 end
