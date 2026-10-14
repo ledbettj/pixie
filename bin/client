@@ -7,13 +7,13 @@ require 'optparse'
 $stdin.binmode
 
 this = File.basename(__FILE__)
-options = { }
+options = { count: 50 }
 
 o = OptionParser.new do |opts|
   opts.banner = "Usage: #{this} [options]"
 
-  opts.on('-c', '-n', '--count=COUNT', 'number of lights in strand') do |c|
-    options[:count] = c
+  opts.on('-c', '-n', '--count=COUNT', Integer, 'number of lights in strand') do |c|
+    options[:count] = c unless c <= 0
   end
 
   opts.on('-h', '--host=HOST', 'druby URI of the server to connect to.') do |h|
@@ -30,7 +30,7 @@ end
 
 puts "Launching #{this} with #{options}"
 
-lights = options[:count].to_i - 1
+lights = options[:count] - 1
 
 client = Pixie::Drb::Client.new("druby://#{options[:host]}:8787")
 pixie  = client.pixie
@@ -77,7 +77,9 @@ samples = []
 loop do
   read_buffer = ''
   while read_buffer.length < READ_BUF_SIZE
-    read_buffer += $stdin.read(READ_BUF_SIZE - read_buffer.length)
+    chunk = $stdin.read(READ_BUF_SIZE - read_buffer.length)
+    exit if chunk.nil? # input closed
+    read_buffer += chunk
   end
   samples.concat(read_buffer.bytes.map{|r| (r - 0x80) / 0x80.to_f })
 
