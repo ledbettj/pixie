@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# The same effect stack as bin/christmas, in halloween colors: a purple base
+# that pulses up and down, orange waves crawling along the strand, and white
+# sparkles scattered on top. No music, unlike bin/halloween.
+
+require "bundler/setup"
+require "pixie"
+require 'optparse'
+
+this = File.basename(__FILE__)
+options = { count: 50 }
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: #{this} [options]"
+
+  opts.on('-n', '-c', '--count=COUNT', Integer, 'Number of lights in your strip') do |n|
+    options[:count] = n unless n <= 0
+  end
+
+  opts.on('-d', '--duration=SECONDS', Float, 'How long to run for (default: until interrupted)') do |d|
+    options[:duration] = d if d.positive?
+  end
+end.parse!
+
+PURPLE = 'hsl(270, 100%, 50%)'
+ORANGE = 'hsl(17, 100%, 60%)'
+
+# bin/christmas fixes its effect counts for a 50 LED strand: 3 waves and 8
+# sparkles. Scale both off the strand length instead, or a long run ends up
+# with a few specks crawling along an otherwise flat strip.
+LEDS_PER_WAVE    = 16
+LEDS_PER_SPARKLE = 6
+
+count    = options[:count]
+waves    = [(count / LEDS_PER_WAVE.to_f).round, 1].max
+sparkles = [(count / LEDS_PER_SPARKLE.to_f).round, 1].max
+
+# Evenly spaced around the strand. Each wave is 4 LEDs rendered back from its
+# start, so the +4 keeps the first one off the end like bin/christmas does.
+starts = waves.times.map { |i| ((i * count) / waves) + 4 }
+
+puts "Launching #{this} with #{options}"
+puts "  #{waves} waves, #{sparkles} sparkles"
+
+p = Pixie::Pixie.new(Pixie::WS2811_STRIP_RGB, count)
+driver = Pixie::Effects::Driver.new(p)
+
+driver.append(Pixie::Effects::Pulse, color: PURPLE, lum_step: 0.02)
+starts.each { |start| driver.append(Pixie::Effects::Wave, color: ORANGE, start: start) }
+driver.append(Pixie::Effects::Sparkle, color: nil, interval: 0.25, count: sparkles)
+
+end_time = Time.now + (options[:duration] || 100 * 365 * 86_400)
+
+begin
+  driver.run(end_time)
+rescue Interrupt
+ensure
+  p.clear
+end
